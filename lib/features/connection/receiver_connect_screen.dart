@@ -188,13 +188,13 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
   }
 
   Widget _buildAwaitingAccept() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(color: Color(0xFF4A9EFF)),
-          const SizedBox(height: 28),
-          const Text(
+          CircularProgressIndicator(color: Color(0xFF4A9EFF)),
+          SizedBox(height: 28),
+          Text(
             'Waiting for sender\nto accept...',
             textAlign: TextAlign.center,
             style: TextStyle(

@@ -47,7 +47,7 @@ class CuePayload {
       CuePayload._(PayloadType.hello, {'role': 'sender', 'name': deviceName});
 
   /// Clear the receiver display.
-  factory CuePayload.clear() => CuePayload._(PayloadType.clear, {});
+  factory CuePayload.clear() => const CuePayload._(PayloadType.clear, {});
 
   // ── Serialisation ─────────────────────────────────────────────────────────
 

@@ -91,7 +91,7 @@ class _CounterTabState extends State<CounterTab> {
                             : Colors.transparent,
                       ),
                     ),
-                  ))).toList(),
+                  ))),
                 ],
               ),
               const SizedBox(height: 24),

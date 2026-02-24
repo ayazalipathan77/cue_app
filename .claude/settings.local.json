@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd.exe /c \"where flutter\")",
+      "Bash(cmd.exe /c \"flutter --version\")",
+      "Bash(cmd.exe /c \"flutter --version 2>&1\")",
+      "Bash(powershell.exe -Command \"Get-Command flutter -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem -Path C:\\\\,D:\\\\,E:\\\\ -Filter ''flutter.bat'' -Recurse -ErrorAction SilentlyContinue -Depth 5 | Select-Object FullName\")",
+      "Bash(cmd.exe /c \"start ms-settings:developers\")",
+      "Bash(flutter build apk)",
+      "Bash(powershell.exe -Command \"cd ''E:\\\\ayaz\\\\Projects\\\\cue_app''; flutter build apk 2>&1\")",
+      "Bash(cmd.exe /c \"start https://developer.android.com/studio\")"
+    ]
+  }
+}

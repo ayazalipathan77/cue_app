@@ -119,6 +119,7 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
         body: BlocBuilder<ConnectionBloc, ConnectionState>(
           builder: (context, state) {
             if (state is Connected) return _buildConnected(state.remoteName);
+            if (state is AcceptingConnection) return _buildAccepting();
             if (state is ConnectionRequestReceived) return _buildRequestReceived(context, state);
             if (state is ConnectionError) return _buildError(context, state.message);
             return _buildAdvertising();
@@ -235,6 +236,26 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAccepting() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: Color(0xFF00E676)),
+          SizedBox(height: 28),
+          Text(
+            'Connecting...',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

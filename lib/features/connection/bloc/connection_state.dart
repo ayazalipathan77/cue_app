@@ -48,6 +48,11 @@ class AwaitingAccept extends ConnectionState {
   const AwaitingAccept();
 }
 
+/// Sender tapped ACCEPT and is waiting for the Nearby handshake to complete.
+class AcceptingConnection extends ConnectionState {
+  const AcceptingConnection();
+}
+
 /// Both sides established a connection.
 class Connected extends ConnectionState {
   final String endpointId;

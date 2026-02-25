@@ -43,6 +43,7 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     _advertisingDeviceName = event.deviceName;
     emit(Advertising(event.deviceName));
     try {
+      await _nearby.stopAdvertising(); // clear any previous session first
       await _nearby.startAdvertising(
         event.deviceName,
         onConnectionRequest: (id, name) =>
@@ -65,6 +66,7 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     _discovered.clear();
     emit(Discovering(event.deviceName));
     try {
+      await _nearby.stopDiscovery(); // clear any previous session first
       await _nearby.startDiscovery(
         event.deviceName,
         onFound: (id, name) => add(EndpointFound(id, name)),
@@ -104,6 +106,7 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     AcceptConnection event,
     Emitter<ConnectionState> emit,
   ) async {
+    emit(const AcceptingConnection()); // show spinner immediately on sender
     try {
       await _nearby.acceptConnection(
         event.endpointId,

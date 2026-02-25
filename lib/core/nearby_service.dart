@@ -9,9 +9,9 @@ typedef OnPayloadReceived = void Function(String endpointId, Uint8List bytes);
 typedef OnEndpointFound = void Function(String endpointId, String endpointName);
 typedef OnEndpointLost = void Function(String endpointId);
 typedef OnDisconnected = void Function(String endpointId);
+typedef OnError = void Function(String message);
 
 /// Singleton wrapper around the nearby_connections plugin.
-/// All calls are fire-and-forget; errors are surfaced via callbacks where needed.
 class NearbyService {
   NearbyService._();
   static final NearbyService instance = NearbyService._();
@@ -29,12 +29,18 @@ class NearbyService {
       deviceName,
       nc.Strategy.P2P_POINT_TO_POINT,
       onConnectionInitiated: (endpointId, info) {
-        onConnectionRequest(endpointId, info.endpointName);
+        try {
+          onConnectionRequest(endpointId, info.endpointName);
+        } catch (_) {}
       },
       onConnectionResult: (endpointId, status) {
-        if (status == nc.Status.CONNECTED) onConnected(endpointId);
+        if (status == nc.Status.CONNECTED) {
+          try { onConnected(endpointId); } catch (_) {}
+        }
       },
-      onDisconnected: (endpointId) => onDisconnected(endpointId),
+      onDisconnected: (endpointId) {
+        try { onDisconnected(endpointId); } catch (_) {}
+      },
       serviceId: kServiceId,
     );
   }
@@ -49,8 +55,12 @@ class NearbyService {
     await nc.Nearby().startDiscovery(
       deviceName,
       nc.Strategy.P2P_POINT_TO_POINT,
-      onEndpointFound: (endpointId, name, serviceId) => onFound(endpointId, name),
-      onEndpointLost: (endpointId) => onLost(endpointId ?? ''),
+      onEndpointFound: (endpointId, name, serviceId) {
+        try { onFound(endpointId, name); } catch (_) {}
+      },
+      onEndpointLost: (endpointId) {
+        try { onLost(endpointId ?? ''); } catch (_) {}
+      },
       serviceId: kServiceId,
     );
   }
@@ -73,9 +83,13 @@ class NearbyService {
         acceptConnection(id, onPayload: onPayload);
       },
       onConnectionResult: (id, status) {
-        if (status == nc.Status.CONNECTED) onConnected(id);
+        if (status == nc.Status.CONNECTED) {
+          try { onConnected(id); } catch (_) {}
+        }
       },
-      onDisconnected: (id) => onDisconnected(id),
+      onDisconnected: (id) {
+        try { onDisconnected(id); } catch (_) {}
+      },
     );
   }
 
@@ -88,7 +102,9 @@ class NearbyService {
       endpointId,
       onPayLoadRecieved: (id, payload) {
         if (payload.type == nc.PayloadType.BYTES && payload.bytes != null) {
-          onPayload(id, Uint8List.fromList(payload.bytes!));
+          try {
+            onPayload(id, Uint8List.fromList(payload.bytes!));
+          } catch (_) {}
         }
       },
       onPayloadTransferUpdate: (id, update) {},
@@ -101,23 +117,23 @@ class NearbyService {
     await nc.Nearby().sendBytesPayload(endpointId, payload.toBytes());
   }
 
-  // ── Cleanup ───────────────────────────────────────────────────────────────
+  // ── Cleanup (all swallow exceptions — best-effort) ────────────────────────
 
   Future<void> stopAdvertising() async {
-    await nc.Nearby().stopAdvertising();
+    try { await nc.Nearby().stopAdvertising(); } catch (_) {}
   }
 
   Future<void> stopDiscovery() async {
-    await nc.Nearby().stopDiscovery();
+    try { await nc.Nearby().stopDiscovery(); } catch (_) {}
   }
 
   Future<void> disconnectFromEndpoint(String endpointId) async {
-    await nc.Nearby().disconnectFromEndpoint(endpointId);
+    try { await nc.Nearby().disconnectFromEndpoint(endpointId); } catch (_) {}
   }
 
   Future<void> stopAll() async {
-    await nc.Nearby().stopAllEndpoints();
-    await nc.Nearby().stopAdvertising();
-    await nc.Nearby().stopDiscovery();
+    try { await nc.Nearby().stopAllEndpoints(); } catch (_) {}
+    try { await nc.Nearby().stopAdvertising(); } catch (_) {}
+    try { await nc.Nearby().stopDiscovery(); } catch (_) {}
   }
 }

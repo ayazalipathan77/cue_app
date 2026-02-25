@@ -88,7 +88,13 @@ class CuePayload {
 }
 
 /// Converts a hex colour string like "#FFFFFF" to a Flutter Color.
+/// Returns white on invalid input instead of throwing.
 Color hexToColor(String hex) {
-  final cleaned = hex.replaceFirst('#', '');
-  return Color(int.parse('FF$cleaned', radix: 16));
+  try {
+    final cleaned = hex.replaceFirst('#', '');
+    if (cleaned.length != 6) return const Color(0xFFFFFFFF);
+    return Color(int.parse('FF$cleaned', radix: 16));
+  } catch (_) {
+    return const Color(0xFFFFFFFF);
+  }
 }

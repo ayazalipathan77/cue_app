@@ -40,6 +40,7 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     StartAdvertising event,
     Emitter<ConnectionState> emit,
   ) async {
+    _advertisingDeviceName = event.deviceName;
     emit(Advertising(event.deviceName));
     try {
       await _nearby.startAdvertising(
@@ -89,6 +90,7 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
   // ── Connection handshake ──────────────────────────────────────────────────
 
   String _pendingRemoteName = '';
+  String _advertisingDeviceName = '';  // remember own name for reject/re-advertise
 
   void _onIncomingConnectionRequested(
     IncomingConnectionRequested event,
@@ -102,19 +104,26 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
     AcceptConnection event,
     Emitter<ConnectionState> emit,
   ) async {
-    await _nearby.acceptConnection(
-      event.endpointId,
-      onPayload: (id, bytes) => add(PayloadReceived(id, bytes)),
-    );
+    try {
+      await _nearby.acceptConnection(
+        event.endpointId,
+        onPayload: (id, bytes) => add(PayloadReceived(id, bytes)),
+      );
+    } catch (e) {
+      emit(ConnectionError('Failed to accept connection: $e'));
+    }
   }
 
   Future<void> _onRejectConnection(
     RejectConnection event,
     Emitter<ConnectionState> emit,
   ) async {
-    await _nearby.disconnectFromEndpoint(event.endpointId);
-    emit(Advertising(_pendingRemoteName.isEmpty ? '' : _pendingRemoteName));
+    try {
+      await _nearby.disconnectFromEndpoint(event.endpointId);
+    } catch (_) {}
     _pendingRemoteName = '';
+    // Resume advertising under the original device name.
+    emit(Advertising(_advertisingDeviceName));
   }
 
   Future<void> _onRequestConnectionToSender(
@@ -173,8 +182,9 @@ class ConnectionBloc extends Bloc<ConnectionEvent, ConnectionState> {
 
   @override
   Future<void> close() async {
-    await _payloadController.close();
+    // Stop Nearby first so no more events arrive after we close the controller.
     await _nearby.stopAll();
+    await _payloadController.close();
     return super.close();
   }
 }

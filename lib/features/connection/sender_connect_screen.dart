@@ -35,6 +35,18 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
   }
 
   Future<void> _requestPermissionsAndAdvertise() async {
+    // Check location services toggle (GPS must be ON for Nearby Connections).
+    final locationService = await Permission.location.serviceStatus;
+    if (locationService != ServiceStatus.enabled && mounted) {
+      context.read<ConnectionBloc>().add(
+        const ConnectionErrorOccurred(
+          'Location services are OFF.\n\nGo to Android Settings → Location and turn it ON. '
+          'Nearby Connections requires Location to scan for devices.',
+        ),
+      );
+      return;
+    }
+
     final statuses = await [
       Permission.bluetooth,
       Permission.bluetoothAdvertise,
@@ -49,11 +61,8 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
     );
 
     if (denied && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Permissions required for Nearby Connections.'),
-          backgroundColor: Colors.red,
-        ),
+      context.read<ConnectionBloc>().add(
+        const ConnectionErrorOccurred('Some permissions were denied. Tap RETRY and allow all permissions.'),
       );
       return;
     }
@@ -111,6 +120,7 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
           builder: (context, state) {
             if (state is Connected) return _buildConnected(state.remoteName);
             if (state is ConnectionRequestReceived) return _buildRequestReceived(context, state);
+            if (state is ConnectionError) return _buildError(context, state.message);
             return _buildAdvertising();
           },
         ),
@@ -247,6 +257,33 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
           const SizedBox(height: 12),
           const CircularProgressIndicator(color: Color(0xFF4A9EFF)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildError(BuildContext context, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 24),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 15),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () => context
+                  .read<ConnectionBloc>()
+                  .add(StartAdvertising(_deviceName)),
+              child: const Text('RETRY'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -36,74 +36,93 @@ class SenderBloc extends Bloc<SenderEvent, SenderState> {
     on<ChangeTab>(_onChangeTab);
   }
 
-  Future<void> _send(CuePayload payload) async {
-    await _nearby.sendCue(endpointId, payload);
+  /// Sends [payload] and emits success/failure via state.
+  /// Returns true on success, false on failure.
+  Future<bool> _trySend(
+    CuePayload payload,
+    Emitter<SenderState> emit,
+    String description,
+  ) async {
+    try {
+      await _nearby.sendCue(endpointId, payload);
+      emit(state.copyWith(
+        lastSentDescription: description,
+        clearSendError: true,
+      ));
+      return true;
+    } catch (e) {
+      emit(state.copyWith(sendError: 'Send failed: $e'));
+      return false;
+    }
   }
 
   Future<void> _onSendText(SendTextCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.text(e.value,
-        color: _colorToHex(e.textColor), bg: _colorToHex(e.bgColor)));
-    emit(state.copyWith(lastSentDescription: 'Text: "${e.value}"'));
+    await _trySend(
+      CuePayload.text(e.value,
+          color: _colorToHex(e.textColor), bg: _colorToHex(e.bgColor)),
+      emit,
+      'Text: "${e.value}"',
+    );
   }
 
   Future<void> _onSendClear(SendClearCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.clear());
-    emit(state.copyWith(lastSentDescription: 'Clear'));
+    await _trySend(CuePayload.clear(), emit, 'Clear');
   }
 
   Future<void> _onStartTimer(StartTimerCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.timer('start',
-        direction: e.countDown ? 'down' : 'up', seconds: e.seconds));
-    emit(state.copyWith(
-      timerRunning: true,
-      lastSentDescription: 'Timer started (${e.countDown ? '▼' : '▲'} ${e.seconds}s)',
-    ));
+    final ok = await _trySend(
+      CuePayload.timer('start',
+          direction: e.countDown ? 'down' : 'up', seconds: e.seconds),
+      emit,
+      'Timer started (${e.countDown ? '▼' : '▲'} ${e.seconds}s)',
+    );
+    if (ok) emit(state.copyWith(timerRunning: true, timerPaused: false));
   }
 
   Future<void> _onPauseTimer(PauseTimerCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.timer('pause'));
-    emit(state.copyWith(timerRunning: false, lastSentDescription: 'Timer paused'));
+    final ok = await _trySend(CuePayload.timer('pause'), emit, 'Timer paused');
+    if (ok) emit(state.copyWith(timerRunning: false, timerPaused: true));
   }
 
   Future<void> _onResumeTimer(ResumeTimerCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.timer('resume'));
-    emit(state.copyWith(timerRunning: true, lastSentDescription: 'Timer resumed'));
+    final ok = await _trySend(CuePayload.timer('resume'), emit, 'Timer resumed');
+    if (ok) emit(state.copyWith(timerRunning: true, timerPaused: false));
   }
 
   Future<void> _onResetTimer(ResetTimerCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.timer('reset'));
-    emit(state.copyWith(timerRunning: false, lastSentDescription: 'Timer reset'));
+    final ok = await _trySend(CuePayload.timer('reset'), emit, 'Timer reset');
+    if (ok) emit(state.copyWith(timerRunning: false, timerPaused: false));
   }
 
   Future<void> _onIncrement(IncrementCounterCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.counter('increment', step: e.step));
-    emit(state.copyWith(lastSentDescription: 'Counter +${e.step}'));
+    await _trySend(
+        CuePayload.counter('increment', step: e.step), emit, 'Counter +${e.step}');
   }
 
   Future<void> _onDecrement(DecrementCounterCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.counter('decrement', step: e.step));
-    emit(state.copyWith(lastSentDescription: 'Counter -${e.step}'));
+    await _trySend(
+        CuePayload.counter('decrement', step: e.step), emit, 'Counter -${e.step}');
   }
 
   Future<void> _onSetCounter(SetCounterCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.counter('set', value: e.value));
-    emit(state.copyWith(lastSentDescription: 'Counter set to ${e.value}'));
+    await _trySend(
+        CuePayload.counter('set', value: e.value), emit, 'Counter set to ${e.value}');
   }
 
   Future<void> _onResetCounter(ResetCounterCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.counter('set', value: 0));
-    emit(state.copyWith(lastSentDescription: 'Counter reset'));
+    await _trySend(CuePayload.counter('set', value: 0), emit, 'Counter reset');
   }
 
   Future<void> _onStartFlash(StartFlashCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.flash('start',
-        hz: e.hz, color: _colorToHex(e.color)));
-    emit(state.copyWith(lastSentDescription: 'Flash started @ ${e.hz}Hz'));
+    await _trySend(
+      CuePayload.flash('start', hz: e.hz, color: _colorToHex(e.color)),
+      emit,
+      'Flash started @ ${e.hz}Hz',
+    );
   }
 
   Future<void> _onStopFlash(StopFlashCue e, Emitter<SenderState> emit) async {
-    await _send(CuePayload.flash('stop'));
-    emit(state.copyWith(lastSentDescription: 'Flash stopped'));
+    await _trySend(CuePayload.flash('stop'), emit, 'Flash stopped');
   }
 
   void _onChangeTab(ChangeTab e, Emitter<SenderState> emit) {

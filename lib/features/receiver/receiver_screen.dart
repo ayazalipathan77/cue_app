@@ -7,6 +7,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../connection/bloc/connection_bloc.dart';
 import 'bloc/receiver_bloc.dart';
 import '../../core/nearby_service.dart';
+import '../../router.dart';
 import '../../core/payload_model.dart';
 import 'widgets/text_display.dart';
 import 'widgets/timer_display.dart';
@@ -39,23 +40,12 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
 
     _receiverBloc = ReceiverBloc();
 
-    // Wire up payload delivery from the Connection layer after first frame.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _listenForPayloads();
-    });
-  }
-
-  void _listenForPayloads() {
-    final connBloc = context.read<ConnectionBloc>();
-
-    // Forward raw payload bytes to ReceiverBloc via the broadcast stream.
+    // Wire up payload delivery immediately — using the global connectionBloc
+    // singleton directly avoids context/timing issues with postFrameCallback.
+    final connBloc = connectionBloc;
     _payloadSub = connBloc.payloadStream.listen(_handlePayloadBytes);
-
-    // Watch for disconnects.
-    _connectionSub = connBloc.stream.listen((state) {
-      if (state is ConnectionIdle) {
-        _receiverBloc.add(const ReceiverDisconnected());
-      }
+    _connectionSub = connBloc.stream.listen((s) {
+      if (s is ConnectionIdle) _receiverBloc.add(const ReceiverDisconnected());
     });
   }
 
@@ -168,9 +158,21 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
       key: const ValueKey('waiting'),
       color: Colors.black,
       child: const Center(
-        child: Text(
-          'Waiting...',
-          style: TextStyle(color: Colors.white24, fontSize: 18),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cast_connected, color: Colors.white38, size: 48),
+            SizedBox(height: 16),
+            Text(
+              'Connected',
+              style: TextStyle(color: Colors.white60, fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Waiting for cue from sender...',
+              style: TextStyle(color: Colors.white38, fontSize: 14),
+            ),
+          ],
         ),
       ),
     );

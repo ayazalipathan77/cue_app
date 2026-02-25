@@ -29,8 +29,21 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
   }
 
   Future<void> _requestPermissionsAndDiscover() async {
+    // Check location services toggle (GPS must be ON for Nearby Connections).
+    final locationService = await Permission.location.serviceStatus;
+    if (locationService != ServiceStatus.enabled && mounted) {
+      context.read<ConnectionBloc>().add(
+        const ConnectionErrorOccurred(
+          'Location services are OFF.\n\nGo to Android Settings → Location and turn it ON. '
+          'Nearby Connections requires Location to scan for devices.',
+        ),
+      );
+      return;
+    }
+
     await [
       Permission.bluetooth,
+      Permission.bluetoothAdvertise,
       Permission.bluetoothConnect,
       Permission.bluetoothScan,
       Permission.location,
@@ -79,6 +92,7 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
             if (state is DiscoveredEndpoints && state.endpoints.isNotEmpty) {
               return _buildEndpointList(context, state.endpoints);
             }
+            if (state is ConnectionError) return _buildError(context, state.message);
             return _buildScanning();
           },
         ),
@@ -224,6 +238,33 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildError(BuildContext context, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 24),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 15),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () => context
+                  .read<ConnectionBloc>()
+                  .add(StartDiscovery(_deviceName)),
+              child: const Text('RETRY'),
+            ),
+          ],
+        ),
       ),
     );
   }

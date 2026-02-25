@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required by Nearby Connections (Google Play Services internals) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <!-- Bluetooth (API <= 30) -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
@@ -6,9 +9,10 @@
     <!-- Bluetooth (API >= 31) -->
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation"/>
 
-    <!-- Location (required for Nearby Connections on Android) -->
+    <!-- Location (required for Nearby Connections on Android < 13) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
     <!-- Wi-Fi Direct / Nearby -->

@@ -53,20 +53,43 @@ class SenderScreen extends StatelessWidget {
                   ),
                 ),
 
-                // ── Last sent info ────────────────────────────────────────
+                // ── Send status bar ───────────────────────────────────────
                 BlocBuilder<SenderBloc, SenderState>(
                   builder: (context, state) {
+                    if (state.sendError != null) {
+                      return Container(
+                        color: Colors.red.withValues(alpha: 0.15),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                size: 12, color: Colors.red),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                state.sendError!,
+                                style: const TextStyle(
+                                    color: Colors.red, fontSize: 11),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
                     if (state.lastSentDescription.isEmpty) return const SizedBox();
                     return Container(
                       color: Colors.white.withValues(alpha: 0.02),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
                       child: Row(
                         children: [
                           Icon(Icons.check_circle_outline,
                               size: 12, color: Colors.white.withValues(alpha: 0.35)),
                           const SizedBox(width: 6),
                           Text(
-                            'Last: ${state.lastSentDescription}',
+                            'Sent: ${state.lastSentDescription}',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.35),
                               fontSize: 11,

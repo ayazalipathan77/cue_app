@@ -81,8 +81,22 @@ class _TimerTabState extends State<TimerTab> {
                 mainAxisSpacing: 12,
                 childAspectRatio: 2.8,
                 children: [
-                  // START / PAUSE / RESUME.
-                  if (!state.timerRunning)
+                  // START / PAUSE / RESUME — mutually exclusive.
+                  if (state.timerRunning)
+                    _actionBtn(
+                      label: 'PAUSE',
+                      icon: Icons.pause,
+                      color: const Color(0xFFFFE600),
+                      onTap: () => context.read<SenderBloc>().add(const PauseTimerCue()),
+                    )
+                  else if (state.timerPaused)
+                    _actionBtn(
+                      label: 'RESUME',
+                      icon: Icons.play_circle_outline,
+                      color: const Color(0xFF4A9EFF),
+                      onTap: () => context.read<SenderBloc>().add(const ResumeTimerCue()),
+                    )
+                  else
                     _actionBtn(
                       label: 'START',
                       icon: Icons.play_arrow,
@@ -90,13 +104,6 @@ class _TimerTabState extends State<TimerTab> {
                       onTap: () => context.read<SenderBloc>().add(
                         StartTimerCue(countDown: _countDown, seconds: _totalSeconds),
                       ),
-                    )
-                  else
-                    _actionBtn(
-                      label: 'PAUSE',
-                      icon: Icons.pause,
-                      color: const Color(0xFFFFE600),
-                      onTap: () => context.read<SenderBloc>().add(const PauseTimerCue()),
                     ),
 
                   _actionBtn(
@@ -105,14 +112,6 @@ class _TimerTabState extends State<TimerTab> {
                     color: Colors.white.withValues(alpha: 0.6),
                     onTap: () => context.read<SenderBloc>().add(const ResetTimerCue()),
                   ),
-
-                  if (state.timerRunning == false)
-                    _actionBtn(
-                      label: 'RESUME',
-                      icon: Icons.play_circle_outline,
-                      color: const Color(0xFF4A9EFF),
-                      onTap: () => context.read<SenderBloc>().add(const ResumeTimerCue()),
-                    ),
                 ],
               ),
 

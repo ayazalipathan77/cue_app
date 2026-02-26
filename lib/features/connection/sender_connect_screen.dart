@@ -47,24 +47,31 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
       return;
     }
 
-    final statuses = await [
-      Permission.bluetooth,
+    final permissions = [
       Permission.bluetoothAdvertise,
       Permission.bluetoothConnect,
       Permission.bluetoothScan,
       Permission.location,
       Permission.nearbyWifiDevices,
-    ].request();
+    ];
 
-    final denied = statuses.values.any(
-      (s) => s == PermissionStatus.denied || s == PermissionStatus.permanentlyDenied,
-    );
+    // Only show the system dialog for permissions not yet granted.
+    final currentStatuses = await Future.wait(permissions.map((p) => p.status));
+    final needsRequest = currentStatuses.any((s) => !s.isGranted);
 
-    if (denied && mounted) {
-      context.read<ConnectionBloc>().add(
-        const ConnectionErrorOccurred('Some permissions were denied. Tap RETRY and allow all permissions.'),
+    if (needsRequest) {
+      final statuses = await permissions.request();
+      final permanentlyBlocked = statuses.values.any(
+        (s) => s == PermissionStatus.permanentlyDenied,
       );
-      return;
+      if (permanentlyBlocked && mounted) {
+        context.read<ConnectionBloc>().add(
+          const ConnectionErrorOccurred(
+            'Permissions are permanently denied.\n\nOpen Android Settings → Apps → CUE → Permissions and enable all.',
+          ),
+        );
+        return;
+      }
     }
 
     if (mounted) {

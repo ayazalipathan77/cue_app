@@ -41,14 +41,19 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
       return;
     }
 
-    await [
-      Permission.bluetooth,
+    final permissions = [
       Permission.bluetoothAdvertise,
       Permission.bluetoothConnect,
       Permission.bluetoothScan,
       Permission.location,
       Permission.nearbyWifiDevices,
-    ].request();
+    ];
+
+    final currentStatuses = await Future.wait(permissions.map((p) => p.status));
+    final needsRequest = currentStatuses.any((s) => !s.isGranted);
+    if (needsRequest) {
+      await permissions.request();
+    }
 
     if (mounted) {
       context.read<ConnectionBloc>().add(StartDiscovery(_deviceName));
@@ -66,8 +71,9 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
     return BlocListener<ConnectionBloc, ConnectionState>(
       listener: (context, state) {
         if (state is Connected) {
+          final router = GoRouter.of(context);
           Future.delayed(const Duration(milliseconds: 800), () {
-            if (mounted) context.go('/receiver');
+            if (mounted) router.go('/receiver');
           });
         }
       },

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Nearby Connections service identifier — must match on both devices.
-const String kServiceId = 'com.cueapp.cue';
+const String kServiceId = 'com.ayazdev.cueapp';
 
 /// App display name.
 const String kAppName = 'CUE';

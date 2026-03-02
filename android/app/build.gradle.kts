@@ -13,7 +13,7 @@ val keyPropertiesFile = rootProject.file("key.properties")
 if (keyPropertiesFile.exists()) keyProperties.load(keyPropertiesFile.inputStream())
 
 android {
-    namespace = "com.cueapp.cue"
+    namespace = "com.ayazdev.cueapp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -36,7 +36,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.cueapp.cue"
+        applicationId = "com.ayazdev.cueapp"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

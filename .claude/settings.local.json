@@ -9,7 +9,12 @@
       "Bash(cmd.exe /c \"start ms-settings:developers\")",
       "Bash(flutter build apk)",
       "Bash(powershell.exe -Command \"cd ''E:\\\\ayaz\\\\Projects\\\\cue_app''; flutter build apk 2>&1\")",
-      "Bash(cmd.exe /c \"start https://developer.android.com/studio\")"
+      "Bash(cmd.exe /c \"start https://developer.android.com/studio\")",
+      "Bash(flutter analyze)",
+      "Bash(export PATH=\"$PATH:/c/flutter/bin\")",
+      "Bash(xargs grep -l \"applicationId\\\\|minSdk\\\\|targetSdk\\\\|compileSdk\\\\|versionCode\\\\|versionName\")",
+      "Bash(flutter build apk --release)",
+      "Bash(flutter pub get)"
     ]
   }
 }

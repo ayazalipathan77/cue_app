@@ -23,7 +23,7 @@
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
 
     <application
-        android:label="cue_app"
+        android:label="CUE"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

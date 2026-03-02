@@ -52,7 +52,18 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
     final currentStatuses = await Future.wait(permissions.map((p) => p.status));
     final needsRequest = currentStatuses.any((s) => !s.isGranted);
     if (needsRequest) {
-      await permissions.request();
+      final statuses = await permissions.request();
+      final permanentlyBlocked = statuses.values.any(
+        (s) => s == PermissionStatus.permanentlyDenied,
+      );
+      if (permanentlyBlocked && mounted) {
+        context.read<ConnectionBloc>().add(
+          const ConnectionErrorOccurred(
+            'Permissions are permanently denied.\n\nOpen Android Settings → Apps → CUE → Permissions and enable all.',
+          ),
+        );
+        return;
+      }
     }
 
     if (mounted) {

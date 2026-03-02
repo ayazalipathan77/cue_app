@@ -90,8 +90,9 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
     return BlocListener<ConnectionBloc, ConnectionState>(
       listener: (context, state) {
         if (state is Connected) {
+          final router = GoRouter.of(context);
           Future.delayed(const Duration(seconds: 1), () {
-            if (mounted) context.go('/sender');
+            if (mounted) router.go('/sender');
           });
         }
         if (state is ConnectionError) {

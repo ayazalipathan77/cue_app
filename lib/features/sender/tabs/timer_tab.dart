@@ -15,8 +15,8 @@ class _TimerTabState extends State<TimerTab> {
   final _secondsController = TextEditingController(text: '00');
 
   int get _totalSeconds {
-    final m = int.tryParse(_minutesController.text) ?? 0;
-    final s = int.tryParse(_secondsController.text) ?? 0;
+    final m = (int.tryParse(_minutesController.text) ?? 0).clamp(0, 99);
+    final s = (int.tryParse(_secondsController.text) ?? 0).clamp(0, 59);
     return m * 60 + s;
   }
 

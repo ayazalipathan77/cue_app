@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'bloc/connection_bloc.dart';
 import '../../core/constants.dart';
+import '../../core/device_name_service.dart';
 
 class ReceiverConnectScreen extends StatefulWidget {
   const ReceiverConnectScreen({super.key});
@@ -15,7 +16,7 @@ class ReceiverConnectScreen extends StatefulWidget {
 class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _radarController;
-  final String _deviceName = 'CUE-Receiver';
+  String _deviceName = 'CUE-Receiver';
 
   @override
   void initState() {
@@ -25,11 +26,17 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
       duration: const Duration(milliseconds: 1500),
     )..repeat();
 
-    _requestPermissionsAndDiscover();
+    _loadNameThenDiscover();
+  }
+
+  /// Load persisted name first, then start discovery so the name is correct.
+  Future<void> _loadNameThenDiscover() async {
+    final name = await DeviceNameService.receiverName();
+    if (mounted) setState(() => _deviceName = name);
+    await _requestPermissionsAndDiscover();
   }
 
   Future<void> _requestPermissionsAndDiscover() async {
-    // Check location services toggle (GPS must be ON for Nearby Connections).
     final locationService = await Permission.location.serviceStatus;
     if (locationService != ServiceStatus.enabled && mounted) {
       context.read<ConnectionBloc>().add(
@@ -71,6 +78,67 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
     }
   }
 
+  Future<void> _editDeviceName() async {
+    final controller = TextEditingController(text: _deviceName);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text('Device Name', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 20,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'e.g. Stage Monitor',
+            hintStyle:
+                TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+            counterStyle:
+                TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.06),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF00E676)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel',
+                style:
+                    TextStyle(color: Colors.white.withValues(alpha: 0.5))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00E676)),
+            child: const Text('Save',
+                style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null) {
+      final trimmed =
+          newName.trim().isEmpty ? 'CUE-Receiver' : newName.trim();
+      await DeviceNameService.saveReceiverName(trimmed);
+      if (mounted) {
+        setState(() => _deviceName = trimmed);
+        // Restart discovery with the updated name.
+        context.read<ConnectionBloc>().add(StartDiscovery(trimmed));
+      }
+    }
+  }
+
   @override
   void dispose() {
     _radarController.dispose();
@@ -109,7 +177,9 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
             if (state is DiscoveredEndpoints && state.endpoints.isNotEmpty) {
               return _buildEndpointList(context, state.endpoints);
             }
-            if (state is ConnectionError) return _buildError(context, state.message);
+            if (state is ConnectionError) {
+              return _buildError(context, state.message);
+            }
             return _buildScanning();
           },
         ),
@@ -146,6 +216,41 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.45),
               fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Tappable device name badge — tap to rename.
+          GestureDetector(
+            onTap: _editDeviceName,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(20),
+                border:
+                    Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.monitor,
+                      size: 14,
+                      color: Colors.white.withValues(alpha: 0.45)),
+                  const SizedBox(width: 6),
+                  Text(
+                    _deviceName,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.65),
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.edit,
+                      size: 13,
+                      color: Colors.white.withValues(alpha: 0.35)),
+                ],
+              ),
             ),
           ),
         ],
@@ -186,10 +291,12 @@ class _ReceiverConnectScreenState extends State<ReceiverConnectScreen>
                       .read<ConnectionBloc>()
                       .add(RequestConnectionToSender(ep.id, _deviceName)),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 18),
                     child: Row(
                       children: [
-                        const Icon(Icons.broadcast_on_personal, color: Color(0xFF4A9EFF)),
+                        const Icon(Icons.broadcast_on_personal,
+                            color: Color(0xFF4A9EFF)),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(

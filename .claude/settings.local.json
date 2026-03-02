@@ -14,7 +14,12 @@
       "Bash(export PATH=\"$PATH:/c/flutter/bin\")",
       "Bash(xargs grep -l \"applicationId\\\\|minSdk\\\\|targetSdk\\\\|compileSdk\\\\|versionCode\\\\|versionName\")",
       "Bash(flutter build apk --release)",
-      "Bash(flutter pub get)"
+      "Bash(flutter pub get)",
+      "Bash(keytool -genkey -v -keystore \"C:/Users/hp/cue-release.jks\" -keyalg RSA -keysize 2048 -validity 10000 -alias cue -storepass \"cue@2026\" -keypass \"cue@2026\" -dname \"CN=CUE App, OU=Dev, O=CUE, L=Unknown, S=Unknown, C=US\")",
+      "Bash(flutter --version)",
+      "Bash(dart --version)",
+      "Bash(echo \"$JAVA_HOME\")",
+      "Bash(flutter build appbundle --release)"
     ]
   }
 }

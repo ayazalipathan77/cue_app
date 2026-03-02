@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'bloc/connection_bloc.dart';
 import '../../core/constants.dart';
+import '../../core/device_name_service.dart';
 
 class SenderConnectScreen extends StatefulWidget {
   const SenderConnectScreen({super.key});
@@ -25,17 +26,17 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    _loadDeviceName();
-    _requestPermissionsAndAdvertise();
+    _loadNameThenAdvertise();
   }
 
-  Future<void> _loadDeviceName() async {
-    // Use hostname or a default.
-    setState(() => _deviceName = 'CUE-Sender');
+  /// Load persisted name first, then start advertising so the name is correct.
+  Future<void> _loadNameThenAdvertise() async {
+    final name = await DeviceNameService.senderName();
+    if (mounted) setState(() => _deviceName = name);
+    await _requestPermissionsAndAdvertise();
   }
 
   Future<void> _requestPermissionsAndAdvertise() async {
-    // Check location services toggle (GPS must be ON for Nearby Connections).
     final locationService = await Permission.location.serviceStatus;
     if (locationService != ServiceStatus.enabled && mounted) {
       context.read<ConnectionBloc>().add(
@@ -55,7 +56,6 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
       Permission.nearbyWifiDevices,
     ];
 
-    // Only show the system dialog for permissions not yet granted.
     final currentStatuses = await Future.wait(permissions.map((p) => p.status));
     final needsRequest = currentStatuses.any((s) => !s.isGranted);
 
@@ -76,6 +76,67 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
 
     if (mounted) {
       context.read<ConnectionBloc>().add(StartAdvertising(_deviceName));
+    }
+  }
+
+  Future<void> _editDeviceName() async {
+    final controller = TextEditingController(text: _deviceName);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text('Device Name', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 20,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'e.g. Main Stage Sender',
+            hintStyle:
+                TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+            counterStyle:
+                TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.06),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF4A9EFF)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel',
+                style:
+                    TextStyle(color: Colors.white.withValues(alpha: 0.5))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4A9EFF)),
+            child:
+                const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null) {
+      final trimmed =
+          newName.trim().isEmpty ? 'CUE-Sender' : newName.trim();
+      await DeviceNameService.saveSenderName(trimmed);
+      if (mounted) {
+        setState(() => _deviceName = trimmed);
+        // Restart advertising with the updated name.
+        context.read<ConnectionBloc>().add(StartAdvertising(trimmed));
+      }
     }
   }
 
@@ -128,8 +189,12 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
           builder: (context, state) {
             if (state is Connected) return _buildConnected(state.remoteName);
             if (state is AcceptingConnection) return _buildAccepting();
-            if (state is ConnectionRequestReceived) return _buildRequestReceived(context, state);
-            if (state is ConnectionError) return _buildError(context, state.message);
+            if (state is ConnectionRequestReceived) {
+              return _buildRequestReceived(context, state);
+            }
+            if (state is ConnectionError) {
+              return _buildError(context, state.message);
+            }
             return _buildAdvertising();
           },
         ),
@@ -168,12 +233,39 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Device name: $_deviceName',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
-                fontSize: 14,
+            const SizedBox(height: 20),
+            // Tappable device name badge — tap to rename.
+            GestureDetector(
+              onTap: _editDeviceName,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.devices,
+                        size: 14,
+                        color: Colors.white.withValues(alpha: 0.45)),
+                    const SizedBox(width: 6),
+                    Text(
+                      _deviceName,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.65),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(Icons.edit,
+                        size: 13,
+                        color: Colors.white.withValues(alpha: 0.35)),
+                  ],
+                ),
               ),
             ),
           ],
@@ -182,7 +274,8 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
     );
   }
 
-  Widget _buildRequestReceived(BuildContext context, ConnectionRequestReceived state) {
+  Widget _buildRequestReceived(
+      BuildContext context, ConnectionRequestReceived state) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -221,7 +314,8 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
                       side: const BorderSide(color: Colors.red),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text('REJECT', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: const Text('REJECT',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -236,7 +330,8 @@ class _SenderConnectScreenState extends State<SenderConnectScreen>
                     ),
                     child: const Text(
                       'ACCEPT',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700, color: Colors.white),
                     ),
                   ),
                 ),
